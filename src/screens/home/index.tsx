@@ -1,9 +1,10 @@
-import { ColorSwatch, Group } from '@mantine/core';
+// import { ColorSwatch, Group } from '@mantine/core';
 import { Button } from '@/components/ui/button';
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Draggable from 'react-draggable';
-import {SWATCHES} from '@/constants';
+// import {SWATCHES} from '@/constants';
+import '@/screens/home/inde.css'
 // import {LazyBrush} from 'lazy-brush';
 
 interface GeneratedResult {
@@ -26,6 +27,10 @@ export default function Home() {
     const [result, setResult] = useState<GeneratedResult>();
     const [latexPosition, setLatexPosition] = useState({ x: 10, y: 200 });
     const [latexExpression, setLatexExpression] = useState<Array<string>>([]);
+    const [history, setHistory] = useState<ImageData[]>([]);
+    const [redoStack, setRedoStack] = useState<ImageData[]>([]);
+    const [strokeWidth, setStrokeWidth] = useState(3);
+    const [selectedTool, setSelectedTool] = useState<string>("pen")
 
     // const lazyBrush = new LazyBrush({
     //     radius: 10,
@@ -62,6 +67,7 @@ export default function Home() {
     
         if (canvas) {
             const ctx = canvas.getContext('2d');
+            canvasRef.current.style.background = 'black';
             if (ctx) {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight - canvas.offsetTop;
@@ -115,9 +121,10 @@ export default function Home() {
     const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
         if (canvas) {
-            canvas.style.background = 'black';
+            saveToHistory();
             const ctx = canvas.getContext('2d');
             if (ctx) {
+                ctx.lineWidth = strokeWidth; 
                 ctx.beginPath();
                 ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
                 setIsDrawing(true);
@@ -132,6 +139,7 @@ export default function Home() {
         if (canvas) {
             const ctx = canvas.getContext('2d');
             if (ctx) {
+                ctx.lineWidth = strokeWidth; 
                 ctx.strokeStyle = color;
                 ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
                 ctx.stroke();
@@ -197,30 +205,164 @@ export default function Home() {
         }
     };
 
+    const useEraser = () => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineWidth = strokeWidth;
+            }
+        }
+    };
+    
+    const disableEraser = () => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.lineWidth = strokeWidth;
+                ctx.strokeStyle = color;
+            }
+        }
+    };
+
+    const saveToHistory = () => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                setHistory((prev) => [...prev, snapshot]);
+            }
+        }
+    };
+    
+    
+    const undo = () => {
+        if (history.length > 0) {
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    const lastState = history.pop(); // Remove the last saved state
+                    setRedoStack((prev) => [...prev, ctx.getImageData(0, 0, canvas.width, canvas.height)]); // Save the current state to the redo stack
+                    if (lastState) {
+                        ctx.putImageData(lastState, 0, 0); // Restore the previous state
+                    }
+                }
+            }
+        }
+    };
+    
+    
+    const redo = () => {
+        if (redoStack.length > 0) {
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    const redoState = redoStack.pop(); // Remove the last state from the redo stack
+                    setHistory((prev) => [...prev, ctx.getImageData(0, 0, canvas.width, canvas.height)]); // Save the current state to the history stack
+                    if (redoState) {
+                        ctx.putImageData(redoState, 0, 0); // Restore the redo state
+                    }
+                }
+            }
+        }
+    };
+    const handleToolSelect = (tool: string) => {
+        setSelectedTool(tool);
+        
+        if (tool === "pen") {
+            disableEraser();
+        }
+        // If eraser is selected, enable eraser mode
+        else if (tool === "eraser") {
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            useEraser();
+        }
+    };    
+
     return (
         <>
-            <div className='grid grid-cols-3 gap-2'>
+            <div className='flex justify-between mt-2'>
                 <Button
                     onClick={() => setReset(true)}
-                    className='z-20 bg-black text-white'
+                    className='z-20 bg-red-500 text-white h-10 w-20 mr-10 ml-10 hover:bg-red-200'
                     variant='default' 
-                    color='black'
+                    color='red'
                 >
                     Reset
                 </Button>
-                <Group className='z-20'>
-                    {SWATCHES.map((swatch) => (
-                        <ColorSwatch key={swatch} color={swatch} onClick={() => setColor(swatch)} />
-                    ))}
-                </Group>
                 <Button
                     onClick={runRoute}
-                    className='z-20 bg-black text-white'
+                    className='z-20 bg-red-500 text-white h-10 w-20 mr-10 hover:bg-red-200'
                     variant='default'
                     color='white'
                 >
                     Run
                 </Button>
+                 <Button
+                    // onClick={useEraser}
+                    onClick={() => handleToolSelect("eraser")}
+                    className={`z-20 h-10 w-20 mr-10 bg-green-300 hover:bg-cyan-200 ${selectedTool === "eraser" ? "border-4 border-blue-600" : ""}`}
+                    variant='default'
+                    color='white'
+                >
+                    Eraser
+                </Button>
+                <Button
+                    // onClick={disableEraser}
+                    onClick={() => handleToolSelect("pen")}
+                    className={`z-20 h-10 w-20 mr-10 bg-green-300 hover:bg-cyan-200 ${selectedTool === "pen" ? "border-4 border-blue-600" : ""}`}
+                    variant='default'
+                    color='white'
+                >
+                    Pen
+                </Button>
+                <Button
+                    onClick={undo}
+                    className='z-20 bg-green-300 text-black h-10 w-20 mr-10 hover:bg-cyan-200'
+                    variant='default'
+                    color='white'
+                >
+                    Undo
+                </Button>
+                <Button
+                    onClick={redo}
+                    className='z-20 bg-green-300 text-black h-10 w-20 mr-10 hover:bg-cyan-200'
+                    variant='default'
+                    color='white'
+                >
+                    Redo
+                </Button>
+                <label id="stroke" className="z-20 h-10 w-30 mr-10">
+                   <input
+                      id = "slider"
+                      type="range"
+                      min="1"
+                      max="20"
+                      value={strokeWidth}
+                      onChange={(e) => setStrokeWidth(Number(e.target.value))}
+                      className="ml-5 mt-4"
+                      />
+                </label>
+                {/* <input id="stroke" name='stroke' type="color"></input>
+                <Group className='z-20 mr-5'>
+                    {SWATCHES.map((swatch) => (
+                        <ColorSwatch key={swatch} color={swatch} onClick={() => setColor(swatch)} />
+                    ))}
+                </Group> */}
+                 <input
+                  id="color-picker"
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="z-20 h-10 w-20 p-0 border-none mr-10 ml-5 cursor-pointer mt-1 rounded-md"
+                 />
             </div>
             <canvas
                 ref={canvasRef}
@@ -246,3 +388,7 @@ export default function Home() {
         </>
     );
 }
+// function setRedoStack(arg0: (prev: any) => any[]) {
+//     throw new Error('Function not implemented.');
+// }
+
