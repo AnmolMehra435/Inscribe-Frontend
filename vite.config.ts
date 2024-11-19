@@ -4,6 +4,7 @@ import eslint from 'vite-plugin-eslint';
 import { defineConfig } from "vite"
  
 export default defineConfig({
+  base: "/Inscribe-Frontend",
   plugins: [react(),eslint()],
   resolve: {
     alias: {
