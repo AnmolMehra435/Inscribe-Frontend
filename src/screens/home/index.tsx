@@ -307,7 +307,7 @@ export default function Home() {
                  <Button
                     // onClick={useEraser}
                     onClick={() => handleToolSelect("eraser")}
-                    className={`z-20 h-10 w-20 mr-10 bg-green-300 hover:bg-cyan-200 ${selectedTool === "eraser" ? "border-4 border-blue-600" : ""}`}
+                    className={`z-20 h-10 w-20 mr-10 text-black bg-green-300 hover:bg-cyan-200 ${selectedTool === "eraser" ? "border-4 border-blue-600" : ""}`}
                     variant='default'
                     color='white'
                 >
@@ -316,7 +316,7 @@ export default function Home() {
                 <Button
                     // onClick={disableEraser}
                     onClick={() => handleToolSelect("pen")}
-                    className={`z-20 h-10 w-20 mr-10 bg-green-300 hover:bg-cyan-200 ${selectedTool === "pen" ? "border-4 border-blue-600" : ""}`}
+                    className={`z-20 h-10 w-20 mr-10 text-black bg-green-300 hover:bg-cyan-200 ${selectedTool === "pen" ? "border-4 border-blue-600" : ""}`}
                     variant='default'
                     color='white'
                 >
@@ -339,6 +339,7 @@ export default function Home() {
                     Redo
                 </Button>
                 <label id="stroke" className="z-20 h-10 w-30 mr-10">
+                <span className="z-20 text-2xl text-white font-mono">{strokeWidth}px</span>
                    <input
                       id = "slider"
                       type="range"
@@ -346,7 +347,7 @@ export default function Home() {
                       max="20"
                       value={strokeWidth}
                       onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                      className="ml-5 mt-4"
+                      className="ml-2 mt-4"
                       />
                 </label>
                 {/* <input id="stroke" name='stroke' type="color"></input>
